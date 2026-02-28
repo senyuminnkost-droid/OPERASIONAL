@@ -1,0 +1,8 @@
+{
+  "name": "OPS SENYUMINN KOST EXCLUSIVE",
+  "description": "SISTEM MANAJEMEN KOST EKSKLUSIF - VERSI STABIL",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
