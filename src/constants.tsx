@@ -1,4 +1,4 @@
-import { RoomStatus, Room, ComplaintType, Complaint, Tenant, Staff, FinanceTransaction } from './types';
+import { RoomStatus, Room, Complaint, Tenant, Staff, FinanceTransaction } from './types';
 
 // Tetap sediakan struktur kamar dasar tanpa penghuni
 // Last Updated: 2026-02-27

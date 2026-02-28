@@ -7,7 +7,7 @@ interface HistoryProps {
 }
 
 const History: React.FC<HistoryProps> = ({ complaints }) => {
-  const [filterType, setFilterType] = useState('Semua Jenis');
+  const [filterType] = useState('Semua Jenis');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   
   const filtered = complaints.filter(c => filterType === 'Semua Jenis' || c.type === filterType);

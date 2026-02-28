@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Room, RoomStatus, ComplaintType, WeeklyServiceLog } from '../types';
+import { Room, WeeklyServiceLog } from '../types';
 
 interface WeeklyServiceProps {
   rooms: Room[];

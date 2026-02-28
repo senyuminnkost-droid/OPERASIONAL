@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Complaint, ComplaintType, Tenant, Staff, OperationalReminder, FinanceTransaction } from '../types';
-import { FASUM_LIST, INITIAL_ROOMS } from '../constants';
+import { Complaint, Tenant, Staff, OperationalReminder, FinanceTransaction } from '../types';
+import { INITIAL_ROOMS } from '../constants';
 
 interface CalendarViewProps {
   complaints: Complaint[];
@@ -29,7 +29,7 @@ interface OperationalEvent {
   completedBy?: string;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ complaints, tenants, staff, reminders, finance, onAddReminder, onQuickPay, onCompleteReminder, onAddRoutineTasks }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ complaints, tenants, staff, reminders, finance, onAddReminder, onQuickPay, onCompleteReminder }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);

@@ -21,9 +21,6 @@ const Report: React.FC<ReportProps> = ({ complaints, onBack }) => {
     }).sort((a, b) => b.date.localeCompare(a.date));
   }, [complaints, startDate, endDate]);
 
-  const total = filteredComplaints.length;
-  const finished = filteredComplaints.filter(c => c.status === 'Selesai').length;
-
   const formatDateLabel = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });

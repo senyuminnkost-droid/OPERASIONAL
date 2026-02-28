@@ -105,7 +105,7 @@ const Attendance: React.FC<AttendanceProps> = ({ staff, onUpdateAttendance }) =>
         stopCamera();
         setActiveCamera(null);
       },
-      (err) => {
+      () => {
         alert("Gagal mengambil lokasi GPS. Pastikan GPS aktif.");
       }
     );

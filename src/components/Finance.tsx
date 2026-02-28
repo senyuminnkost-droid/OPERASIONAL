@@ -10,7 +10,6 @@ interface FinanceProps {
 
 const Finance: React.FC<FinanceProps> = ({ transactions, onAddTransaction, view = 'dashboard' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [previewVoucher, setPreviewVoucher] = useState<FinanceTransaction | null>(null);
   
   const [formData, setFormData] = useState({
     type: 'Out' as 'In' | 'Out',
