@@ -22,6 +22,7 @@ import StaffManagement from './components/StaffManagement';
 import WeeklyService from './components/WeeklyService';
 import Attendance from './components/Attendance';
 import { getGeminiInsights } from './services/geminiService';
+import { dataService } from './services/dataService';
 
 const DEFAULT_REMINDERS: OperationalReminder[] = [
   { id: 'R1', title: 'Tagihan Listrik (PLN)', date: '2024-01-04', type: 'PLN', description: 'Pembayaran rutin listrik bulanan', amount: 0, status: 'Terjadwal', recurrence: 'Monthly', recurrencePattern: { dayOfMonth: 4 } },
@@ -79,6 +80,37 @@ const App: React.FC = () => {
   const [aiInsight, setAiInsight] = useState<string>('Menganalisis tren kost...');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        const [sRooms, sComplaints, sTenants, sStaff, sFinance, sReminders] = await Promise.all([
+          dataService.getRooms(),
+          dataService.getComplaints(),
+          dataService.getTenants(),
+          dataService.getStaff(),
+          dataService.getFinance(),
+          dataService.getReminders()
+        ]);
+
+        if (sRooms.length > 0) setRooms(sRooms);
+        if (sComplaints.length > 0) setComplaints(sComplaints);
+        if (sTenants.length > 0) setTenants(sTenants);
+        if (sStaff.length > 0) setStaff(sStaff);
+        if (sFinance.length > 0) setFinance(sFinance);
+        if (sReminders.length > 0) setReminders(sReminders);
+      } catch (error) {
+        console.error('Gagal memuat data dari Supabase:', error);
+        // Fallback to localStorage is already handled by initial state
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('senyum_inn_rooms', JSON.stringify(rooms));
@@ -137,21 +169,23 @@ const App: React.FC = () => {
     }
   };
 
-  const handleWeeklyServiceSubmit = (log: WeeklyServiceLog) => {
+  const handleWeeklyServiceSubmit = async (log: WeeklyServiceLog) => {
     const hasIssue = Object.values(log.checks).some(v => v === 'Masalah');
     const today = new Date().toISOString().split('T')[0];
 
-    setRooms(prevRooms => prevRooms.map(r => {
+    const updatedRooms = rooms.map(r => {
       if (r.id === log.roomId) {
-        return {
-          ...r,
+        const updates = {
           lastService: today,
           status: hasIssue ? RoomStatus.COMPLAINT : r.status,
           lastUpdate: today
         };
+        dataService.updateRoom(r.id, updates).catch(console.error);
+        return { ...r, ...updates };
       }
       return r;
-    }));
+    });
+    setRooms(updatedRooms);
 
     if (hasIssue) {
       const newComplaint: Complaint = {
@@ -165,6 +199,7 @@ const App: React.FC = () => {
         status: 'Baru'
       };
       setComplaints(prev => [newComplaint, ...prev]);
+      dataService.addComplaint(newComplaint).catch(console.error);
     }
     setActiveTab('dashboard');
   };
@@ -174,7 +209,9 @@ const App: React.FC = () => {
     setStaff(prev => prev.map(s => {
       if (s.id === staffId) {
         const newAttendance = { ...(s.attendance || {}), [today]: record };
-        return { ...s, attendance: newAttendance };
+        const updatedStaff = { ...s, attendance: newAttendance };
+        dataService.updateStaff(staffId, { attendance: newAttendance }).catch(console.error);
+        return updatedStaff;
       }
       return s;
     }));
@@ -182,6 +219,7 @@ const App: React.FC = () => {
 
   const handleAddReminder = (reminder: OperationalReminder) => {
     setReminders([reminder, ...reminders]);
+    dataService.addReminder(reminder).catch(console.error);
   };
 
   const handleCompleteReminder = (reminder: OperationalReminder, amount: number, staffName: string, notes: string) => {
@@ -197,54 +235,83 @@ const App: React.FC = () => {
         source: 'A' 
       };
       setFinance([newTransaction, ...finance]);
+      dataService.addFinance(newTransaction).catch(console.error);
     }
     
-    setReminders(reminders.map(r => r.id === reminder.id ? { 
+    const updatedReminders = reminders.map(r => r.id === reminder.id ? { 
       ...r, 
+      status: 'Lunas' as const, 
+      completedBy: staffName, 
+      completedDate: new Date().toISOString().split('T')[0] 
+    } : r);
+    setReminders(updatedReminders);
+    dataService.updateReminder(reminder.id, { 
       status: 'Lunas', 
       completedBy: staffName, 
       completedDate: new Date().toISOString().split('T')[0] 
-    } : r));
+    }).catch(console.error);
   };
 
   const handleAddTenant = (newTenant: Tenant) => {
     setTenants([newTenant, ...tenants]);
-    setRooms(rooms.map(r => r.id === newTenant.roomId ? { 
-      ...r, isOccupied: true, tenantName: newTenant.name, entryDate: newTenant.entryDate, status: RoomStatus.NORMAL 
-    } : r));
+    dataService.addTenant(newTenant).catch(console.error);
+    
+    const updatedRooms = rooms.map(r => {
+      if (r.id === newTenant.roomId) {
+        const updates = { isOccupied: true, tenantName: newTenant.name, entryDate: newTenant.entryDate, status: RoomStatus.NORMAL };
+        dataService.updateRoom(r.id, updates).catch(console.error);
+        return { ...r, ...updates };
+      }
+      return r;
+    });
+    setRooms(updatedRooms);
   };
 
   const handleUpdateTenant = (tenantId: string, updates: Partial<Tenant>) => {
-    const currentTenant = tenants.find(t => t.id === tenantId);
-    if (!currentTenant) return;
     setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, ...updates } : t));
+    dataService.updateTenant(tenantId, updates).catch(console.error);
   };
 
   const addComplaint = (newComplaint: Complaint) => {
     const updatedComplaints = [newComplaint, ...complaints];
     setComplaints(updatedComplaints);
-    setRooms(rooms.map(room => room.id === newComplaint.roomId ? { ...room, status: RoomStatus.COMPLAINT, complaintId: newComplaint.id } : room));
+    dataService.addComplaint(newComplaint).catch(console.error);
+
+    const updatedRooms = rooms.map(room => {
+      if (room.id === newComplaint.roomId) {
+        const updates = { status: RoomStatus.COMPLAINT, complaintId: newComplaint.id };
+        dataService.updateRoom(room.id, updates).catch(console.error);
+        return { ...room, ...updates };
+      }
+      return room;
+    });
+    setRooms(updatedRooms);
     setActiveTab('dashboard');
     fetchInsights(updatedComplaints);
   };
 
   const updateComplaintStatus = (id: string, updates: Partial<Complaint>) => {
-    const updatedComplaints = complaints.map(c => c.id === id ? { ...c, ...updates } : c);
-    setComplaints(updatedComplaints);
+    setComplaints(complaints.map(c => c.id === id ? { ...c, ...updates } : c));
+    dataService.updateComplaint(id, updates).catch(console.error);
   };
 
   const updateRoom = (roomId: number, updates: Partial<Room>) => {
     setRooms(prev => prev.map(r => r.id === roomId ? { ...r, ...updates, lastUpdate: new Date().toISOString().split('T')[0] } : r));
+    dataService.updateRoom(roomId, { ...updates, lastUpdate: new Date().toISOString().split('T')[0] }).catch(console.error);
   };
 
-  const closeTicket = (complaintId: string) => {
-    const complaint = complaints.find(c => c.id === complaintId);
-    if (complaint) setRooms(rooms.map(r => r.id === complaint.roomId ? { ...r, status: RoomStatus.NORMAL, complaintId: undefined } : r));
+  const handleAddStaff = (newStaff: Staff) => {
+    setStaff([newStaff, ...staff]);
+    dataService.addStaff(newStaff).catch(console.error);
   };
-
-  const handleAddStaff = (newStaff: Staff) => setStaff([newStaff, ...staff]);
-  const handleUpdateStaff = (id: string, updates: Partial<Staff>) => setStaff(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  const handleAddFinance = (newTransaction: FinanceTransaction) => setFinance([newTransaction, ...finance]);
+  const handleUpdateStaff = (id: string, updates: Partial<Staff>) => {
+    setStaff(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    dataService.updateStaff(id, updates).catch(console.error);
+  };
+  const handleAddFinance = (newTransaction: FinanceTransaction) => {
+    setFinance([newTransaction, ...finance]);
+    dataService.addFinance(newTransaction).catch(console.error);
+  };
 
   const handleQuickPay = (tenantId: string) => {
     const tenant = tenants.find(t => t.id === tenantId);
@@ -263,7 +330,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard rooms={rooms} complaints={complaints} finance={finance} tenants={tenants} onAction={() => setActiveTab('actions')} onCloseTicket={closeTicket} aiInsight={aiInsight} onUpdateRoom={updateRoom} onQuickPay={handleQuickPay} />;
+      case 'dashboard': return <Dashboard rooms={rooms} complaints={complaints} finance={finance} tenants={tenants} onAction={() => setActiveTab('actions')} aiInsight={aiInsight} isAiLoading={isAiLoading} onUpdateRoom={updateRoom} onQuickPay={handleQuickPay} />;
       case 'weekly-service': return <WeeklyService rooms={rooms} onServiceSubmit={handleWeeklyServiceSubmit} />;
       case 'attendance': return <Attendance staff={staff} onUpdateAttendance={handleUpdateAttendance} />;
       case 'input': return <ComplaintInput rooms={rooms} onSubmit={addComplaint} onCancel={() => setActiveTab('dashboard')} />;
@@ -276,7 +343,7 @@ const App: React.FC = () => {
       case 'finance-journal': return <Finance transactions={finance} onAddTransaction={handleAddFinance} view="journal" />;
       case 'tenants': return <TenantManagement tenants={tenants} rooms={rooms} onAddTenant={handleAddTenant} onUpdateTenant={handleUpdateTenant} />;
       case 'staff': return <StaffManagement staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} />;
-      default: return <Dashboard rooms={rooms} complaints={complaints} finance={finance} tenants={tenants} onAction={() => setActiveTab('actions')} onCloseTicket={closeTicket} aiInsight={aiInsight} onUpdateRoom={updateRoom} onQuickPay={handleQuickPay} />;
+      default: return <Dashboard rooms={rooms} complaints={complaints} finance={finance} tenants={tenants} onAction={() => setActiveTab('actions')} aiInsight={aiInsight} isAiLoading={isAiLoading} onUpdateRoom={updateRoom} onQuickPay={handleQuickPay} />;
     }
   };
 
@@ -286,7 +353,16 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-h-screen lg:ml-72 relative transition-all w-full max-w-full overflow-hidden">
         <Header activeTab={activeTab} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden">
-          {renderContent()}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full bg-slate-50/50 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                <p className="text-slate-600 font-medium">Memuat data dari cloud...</p>
+              </div>
+            </div>
+          ) : (
+            renderContent()
+          )}
         </main>
       </div>
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[45] lg:hidden" onClick={() => setIsSidebarOpen(false)} />}

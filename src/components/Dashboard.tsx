@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Room, RoomStatus, Complaint, FinanceTransaction, Tenant } from '../types';
+import { Room, Complaint, FinanceTransaction, Tenant } from '../types';
 
 interface DashboardProps {
   rooms: Room[];
@@ -8,7 +8,6 @@ interface DashboardProps {
   finance: FinanceTransaction[];
   tenants: Tenant[];
   onAction: () => void;
-  onCloseTicket: (id: string) => void;
   onUpdateRoom: (roomId: number, updates: Partial<Room>) => void;
   onQuickPay: (tenantId: string) => void;
   aiInsight?: string;
@@ -21,7 +20,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   finance,
   tenants,
   onAction, 
-  onCloseTicket, 
   onUpdateRoom,
   onQuickPay,
   aiInsight, 
