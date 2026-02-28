@@ -52,10 +52,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 
+  const activeTenants = tenants.filter(t => t.isActive);
+  const occupiedRoomIds = new Set(activeTenants.map(t => t.roomId));
+
   const stats = [
     { label: 'Keluhan', value: complaints.filter(c => c.status !== 'Selesai').length, icon: 'report_problem', color: 'text-rose-500' },
-    { label: 'Terisi', value: rooms.filter(r => r.isOccupied).length, icon: 'group', color: 'text-primary' },
-    { label: 'Okupansi', value: `${Math.round((rooms.filter(r => r.isOccupied).length / rooms.length) * 100)}%`, icon: 'analytics', color: 'text-emerald-500' },
+    { label: 'Terisi', value: occupiedRoomIds.size, icon: 'group', color: 'text-primary' },
+    { label: 'Okupansi', value: `${Math.round((occupiedRoomIds.size / rooms.length) * 100)}%`, icon: 'analytics', color: 'text-emerald-500' },
     { label: 'Piutang', value: formatCurrency(projectedRevenue), icon: 'account_balance_wallet', color: 'text-primary' },
   ];
 
@@ -262,28 +265,34 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 w-full">
-          {rooms.map((room) => (
-            <div key={room.id} 
-                 onClick={() => handleOpenDetail(room)}
-                 className="bg-white dark:bg-brand-black rounded-xl border border-gray-100 dark:border-brand-gray/20 shadow-sm hover:border-primary transition-all flex flex-col overflow-hidden cursor-pointer h-[100px] relative w-full box-border">
-              <div className={`h-1 w-full shrink-0 ${room.isOccupied ? 'bg-primary' : 'bg-emerald-500'}`}></div>
-              <div className="p-2 flex flex-col h-full min-w-0">
-                <div className="min-w-0">
-                  <h4 className="text-[10px] font-bold dark:text-white uppercase truncate">{room.name}</h4>
-                  <p className="text-[6px] font-bold text-primary uppercase tracking-widest truncate">{(room.specs?.type || 'Standard').split(' ')[0]}</p>
-                </div>
-                
-                <div className="mt-1.5 flex-1 min-w-0">
-                   <p className="text-[9px] font-bold dark:text-white uppercase tracking-tight truncate opacity-80 leading-none">{room.isOccupied ? room.tenantName : 'Ready'}</p>
-                </div>
+          {rooms.map((room) => {
+            const activeTenant = tenants.find(t => t.isActive && t.roomId === room.id);
+            const isOccupied = !!activeTenant;
+            const tenantName = activeTenant?.name || 'Ready';
+            
+            return (
+              <div key={room.id} 
+                   onClick={() => handleOpenDetail(room)}
+                   className="bg-white dark:bg-brand-black rounded-xl border border-gray-100 dark:border-brand-gray/20 shadow-sm hover:border-primary transition-all flex flex-col overflow-hidden cursor-pointer h-[100px] relative w-full box-border">
+                <div className={`h-1 w-full shrink-0 ${isOccupied ? 'bg-primary' : 'bg-emerald-500'}`}></div>
+                <div className="p-2 flex flex-col h-full min-w-0">
+                  <div className="min-w-0">
+                    <h4 className="text-[10px] font-bold dark:text-white uppercase truncate">{room.name}</h4>
+                    <p className="text-[6px] font-bold text-primary uppercase tracking-widest truncate">{(room.specs?.type || 'Standard').split(' ')[0]}</p>
+                  </div>
+                  
+                  <div className="mt-1.5 flex-1 min-w-0">
+                     <p className="text-[9px] font-bold dark:text-white uppercase tracking-tight truncate opacity-80 leading-none">{tenantName}</p>
+                  </div>
 
-                <div className="mt-auto pt-1 flex justify-between items-center">
-                   <span className="text-[6px] font-bold text-primary uppercase tracking-widest">Manage</span>
-                   <span className="material-symbols-outlined text-primary text-[10px]">arrow_forward</span>
+                  <div className="mt-auto pt-1 flex justify-between items-center">
+                     <span className="text-[6px] font-bold text-primary uppercase tracking-widest">Manage</span>
+                     <span className="material-symbols-outlined text-primary text-[10px]">arrow_forward</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
