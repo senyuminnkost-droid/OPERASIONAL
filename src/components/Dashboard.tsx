@@ -270,7 +270,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="p-2 flex flex-col h-full min-w-0">
                 <div className="min-w-0">
                   <h4 className="text-[10px] font-bold dark:text-white uppercase truncate">{room.name}</h4>
-                  <p className="text-[6px] font-bold text-primary uppercase tracking-widest truncate">{room.specs.type.split(' ')[0]}</p>
+                  <p className="text-[6px] font-bold text-primary uppercase tracking-widest truncate">{(room.specs?.type || 'Standard').split(' ')[0]}</p>
                 </div>
                 
                 <div className="mt-1.5 flex-1 min-w-0">

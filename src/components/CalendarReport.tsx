@@ -30,7 +30,7 @@ const CalendarReport: React.FC<CalendarReportProps> = ({ complaints, finance, on
           category: f.category,
           pic: staffMatch ? staffMatch[1] : 'Admin',
           cost: f.amount,
-          notes: f.description.split(')')[1]?.replace('-', '').trim() || '-',
+          notes: (f.description || '').split(')')[1]?.replace('-', '').trim() || '-',
           type: 'Rutin'
         });
       }

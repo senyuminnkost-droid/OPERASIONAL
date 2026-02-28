@@ -581,7 +581,7 @@ const TenantManagement: React.FC<TenantProps> = ({ tenants, rooms, onAddTenant, 
                </div>
                <div className="text-right">
                   <h3 className="text-3xl font-bold uppercase text-brand-black tracking-tight mb-2">PROFIL</h3>
-                  <p className="text-base font-bold text-primary tracking-widest">#S-{previewTenant.id.split('-')[1].toUpperCase()}</p>
+                  <p className="text-base font-bold text-primary tracking-widest">#S-{(previewTenant.id.split('-')[1] || previewTenant.id.slice(-4)).toUpperCase()}</p>
                </div>
             </div>
 

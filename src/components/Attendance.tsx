@@ -37,8 +37,8 @@ const Attendance: React.FC<AttendanceProps> = ({ staff, onUpdateAttendance }) =>
   };
 
   const calculatePenalty = (staff: Staff, clockInTime: string): number => {
-    const [shiftH, shiftM] = staff.shiftStartTime.split(':').map(Number);
-    const [h, m] = clockInTime.split(':').map(Number);
+    const [shiftH, shiftM] = (staff.shiftStartTime || "07:00").split(':').map(Number);
+    const [h, m] = (clockInTime || "00:00").split(':').map(Number);
     
     const shiftMinutes = shiftH * 60 + shiftM;
     const actualMinutes = h * 60 + m;
@@ -73,7 +73,7 @@ const Attendance: React.FC<AttendanceProps> = ({ staff, onUpdateAttendance }) =>
         let existingRecord = staffMember.attendance?.[selectedDate];
 
         if (activeCamera.mode === 'in') {
-          const [shiftH, shiftM] = staffMember.shiftStartTime.split(':').map(Number);
+          const [shiftH, shiftM] = (staffMember.shiftStartTime || "07:00").split(':').map(Number);
           const shiftMinutes = shiftH * 60 + shiftM;
           const actualMinutes = now.getHours() * 60 + now.getMinutes();
           const delay = actualMinutes - shiftMinutes;
